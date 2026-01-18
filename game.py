@@ -20,6 +20,7 @@ class Player(pg.sprite.Sprite):
         self.velocity_x = 0
         self.velocity_y = 0
         self.gravity = 1
+        self.is_attack =False
         self.is_jumping = False
         self.map_width = map_width * TILE_SCALE
         self.map_height = map_height * TILE_SCALE
@@ -39,24 +40,37 @@ class Player(pg.sprite.Sprite):
         num_images = 6
         spritesheet = pg.image.load("craftpix-net-679950-free-raider-sprite-sheets-pixel-art/Raider_1/Idle.png")
         for i in range(num_images):
-            x = i * tile_size +48
+            x = i * tile_size + 48
             y = 64
 
-
-            rect = pg.Rect(x, y, tile_size/4, tile_size/2)
+            rect = pg.Rect(x, y, tile_size / 4, tile_size / 2)
             image = spritesheet.subsurface(rect)
             image = pg.transform.scale(image, (tile_size * tile_scale, tile_size * tile_scale))
             self.idle_animation_right.append(image)
 
         self.idle_animation_left = [pg.transform.flip(image, True, False) for image in self.idle_animation_right]
 
+        self.shot_animation_right = []
+        num_images = 12
+        spritesheet = pg.image.load("craftpix-net-679950-free-raider-sprite-sheets-pixel-art/Raider_1/Shot.png")
+        for i in range(num_images):
+            x = i *128
+            y = 0
+
+            rect = pg.Rect(x, y, tile_size/2, tile_size)
+            image = spritesheet.subsurface(rect)
+            image = pg.transform.scale(image, (tile_size * tile_scale, tile_size * tile_scale))
+            self.shot_animation_right.append(image)
+
+        self.shot_animation_left = [pg.transform.flip(image, True, False) for image in self.shot_animation_right]
+
         self.run_animation_right = []
         spritesheet = pg.image.load("craftpix-net-679950-free-raider-sprite-sheets-pixel-art/Raider_1/Run.png")
         num_images = 8
         for i in range(num_images):
-            x = i * tile_size +40  # Начальная координата X изображения в спрайтшите
+            x = i * tile_size + 40  # Начальная координата X изображения в спрайтшите
             y = 64  # Начальная координата Y изображения в спрайтшите
-            rect = pg.Rect(x, y, tile_size/4, tile_size/2)  # Прямоугольник, который определяет область изображения
+            rect = pg.Rect(x, y, tile_size / 4, tile_size / 2)  # Прямоугольник, который определяет область изображения
             image = spritesheet.subsurface(rect)  # Вырезаем изображение из спрайтшита
             image = pg.transform.scale(image, (tile_size * tile_scale, tile_size * tile_scale))
             self.run_animation_right.append(image)  # Добавляем изображение в список
@@ -65,22 +79,22 @@ class Player(pg.sprite.Sprite):
         spritesheet = pg.image.load("craftpix-net-679950-free-raider-sprite-sheets-pixel-art/Raider_1/Jump.png")
         num_images = 11
         for i in range(num_images):
-            x = i * tile_size +48  # Начальная координата X изображения в спрайтшите
+            x = i * tile_size + 48  # Начальная координата X изображения в спрайтшите
             y = 64  # Начальная координата Y изображения в спрайтшите
-            rect = pg.Rect(x, y, tile_size/4, tile_size/2)  # Прямоугольник, который определяет область изображения
+            rect = pg.Rect(x, y, tile_size / 4, tile_size / 2)  # Прямоугольник, который определяет область изображения
             image = spritesheet.subsurface(rect)  # Вырезаем изображение из спрайтшита
             image = pg.transform.scale(image, (tile_size * tile_scale, tile_size * tile_scale))
             self.jump_animation_right.append(image)  # Добавляем изображение в список
         self.jump_animation_left = [pg.transform.flip(image, True, False) for image in self.jump_animation_right]
 
-
     def animate(self):
         self.current_image += 1
+        print(self.current_image)
         if self.current_image >= len(self.current_animation):
             self.current_image = 0
         if pg.time.get_ticks() - self.timer > self.interval:
             self.image = self.current_animation[self.current_image]
-            self.mask = pg.mask.from_surface(self.image)   # ← обновляем маску
+            self.mask = pg.mask.from_surface(self.image)  # ← обновляем маску
             self.timer = pg.time.get_ticks()
 
     def update(self, platforms):
@@ -112,15 +126,37 @@ class Player(pg.sprite.Sprite):
             else:
                 self.current_animation = self.jump_animation_left
         elif self.velocity_x != 0:
-            if self.facing_right:
+            if  self.facing_right:
                 self.current_animation = self.run_animation_right
             else:
                 self.current_animation = self.run_animation_left
         else:
-            if self.facing_right:
-                self.current_animation = self.idle_animation_right
+
+            if not self.is_attack:
+
+
+
+                if self.facing_right:
+                    self.current_animation = self.idle_animation_right
+
+                else:
+                    self.current_animation = self.idle_animation_left
             else:
-                self.current_animation = self.idle_animation_left
+                if self.current_image < len(self.current_animation):
+                    print(self.current_image)
+                    self.is_attack = False
+        if keys[pg.K_RETURN]:
+            self.current_animation = self.shot_animation_right
+            self.velocity_x = 0
+            if self.current_image < len(self.current_animation):
+                print(self.current_image)
+                self.is_attack = False
+                if not self.is_attack:
+
+                    self.is_attack = True
+                # self.current_image = 0
+
+
 
         # 2. Гравитация
         self.velocity_y += self.gravity
@@ -195,6 +231,20 @@ class Platform(pg.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x * TILE_SCALE, y * TILE_SCALE))
         self.mask = pg.mask.from_surface(self.image)
 
+class Bullet(pg.sprite.Sprite):
+    def __init__(self, player_rect):
+        super().__init__()
+        self.image = pg.Surface((10, 4))
+        self.image.fill("black")
+        self.rect = self.image.get_rect()
+        self.rect.left = player_rect.rect.right
+        self.rect.centery = player_rect.rect.centery
+        self.speed = 25
+        print(self.rect.center)
+    def update(self, update):
+        self.rect.x += self.speed
+
+
 
 class NPC1(pg.sprite.Sprite):
     def __init__(self, map_width, map_height):
@@ -211,6 +261,7 @@ class NPC1(pg.sprite.Sprite):
         self.timer = pg.time.get_ticks()
         self.interval = 50
         self.facing_right = False
+
     def load_animations(self):
         tile_size = 128
         tile_scale = 0.5
@@ -219,11 +270,10 @@ class NPC1(pg.sprite.Sprite):
         num_images = 8
         spritesheet = pg.image.load("craftpix-net-679950-free-raider-sprite-sheets-pixel-art/Raider_2/Idle.png")
         for i in range(num_images):
-            x = i * tile_size +48
+            x = i * tile_size + 48
             y = 64
 
-
-            rect = pg.Rect(x, y, tile_size/4, tile_size/2)
+            rect = pg.Rect(x, y, tile_size / 4, tile_size / 2)
             image = spritesheet.subsurface(rect)
             image = pg.transform.scale(image, (tile_size * tile_scale, tile_size * tile_scale))
             self.idle_animation_right.append(image)
@@ -241,12 +291,7 @@ class NPC1(pg.sprite.Sprite):
 
     def update(self, platforms):
 
-
-
-
-
         self.animate()
-
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -256,10 +301,9 @@ class NPC1(pg.sprite.Sprite):
         print(self.hint_rect.center)
 
 
-
 class Game:
     def __init__(self):
-
+        self.bullets = pg.sprite.Group()
         self.clock = pg.time.Clock()
         self.is_game = True
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -284,7 +328,7 @@ class Game:
 
                     self.all_sprites.add(platform)
                     self.platforms.add(platform)
-
+        print(len(self.bullets))
         self.run()
 
     def draw(self):
@@ -294,38 +338,44 @@ class Game:
         self.screen.fill(pg.Color("grey"))
 
         # pg.draw.rect(self.screen, pg.Color("blue"), self.player.rect.move(-int(self.camera_x), -int(self.camera_y)))
+        if self.player.current_animation in [ self.player.shot_animation_right, self.player.shot_animation_left]:
+            self.player.image = pg.transform.scale(self.player.image, (128, 128))
+            self.player.rect.y -=25
+
         self.screen.blit(self.player.image, self.player.rect.move(-int(self.camera_x), -int(self.camera_y)))
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, sprite.rect.move(-self.camera_x, -self.camera_y))
         self.screen.blit(text, text_rect)
-        if self.npc1.rect.x - self.player.rect.x < 100 and self.npc1.rect.y == self.player.rect.y  :
+        if self.npc1.rect.x - self.player.rect.x < 100 and self.npc1.rect.y == self.player.rect.y:
             self.hint_rect = pg.Rect(5250, 600, 200, 100)
 
-            pg.draw.rect(self.screen, pg.Color("white"),self.hint_rect.move(-self.camera_x, -self.camera_y), border_radius= 30)
+            pg.draw.rect(self.screen, pg.Color("white"), self.hint_rect.move(-self.camera_x, -self.camera_y),
+                         border_radius=30)
 
-
-            font = pg.font.SysFont('Arial', 25)
-            text = font.render('Привет, тебе\n надо тут выжить', True, (0, 100, 0))
+            font = pg.font.SysFont('Arial', 20)
+            text = font.render('Привет, тебе\n надо тут выжить', True, (0, 0, 0))
             text_rect = text.get_rect()
             text_rect.center = self.hint_rect.center
-            self.screen.blit(text,text_rect.move(-self.camera_x, -self.camera_y) )
-
-
-
-
+            self.screen.blit(text, text_rect.move(-self.camera_x, -self.camera_y))
+        self.bullets.draw(self.screen)
         pg.display.flip()
+
     def update(self):
+        self.bullets.update()
         self.player.update(self.platforms)
         self.npc1.update(self.platforms)
         self.camera_x = max(0, min(self.player.rect.x - WIDTH // 2, self.map_pixel_width - WIDTH))
         self.camera_y = max(0, min(self.player.rect.y - HEIGHT // 2, self.map_pixel_height - HEIGHT))
-
-
+        self.all_sprites.update(self.platforms)
 
     def event(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.is_game = False
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_RETURN:
+                    self.all_sprites.add(Bullet(self.player))
+
 
     def run(self):
         self.is_game = True
