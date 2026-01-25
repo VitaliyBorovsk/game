@@ -1,5 +1,7 @@
+import pygame_menu
 import pygame as pg
 import pytmx
+
 
 pg.init()
 WIDTH = 1500
@@ -387,5 +389,86 @@ class Game:
         quit()
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pg.init()
+
+
+class Menu:
+    def __init__(self):
+        self.surface = pg.display.set_mode((1500,1000))
+        self.menu = pygame_menu.Menu(
+            height=1000,
+            width=1500,
+            theme=pygame_menu.themes.THEME_DARK,
+            title="Игра"
+        )
+        self.menu.add.text_input("Имя: ", onchange=self.set_name)
+        self.menu.add.selector("Сложность:", [("Лёгкая", 1), ("Нормальная", 2), ("Сложная", 3), ("Невозможная", 4)], onchange=self.set_difficulty)
+        self.menu.add.label(title="Нет")
+        self.menu.add.button("Играть", self.start_game)
+        self.menu.add.button("Выйти", self.quit_game())
+        self.run()
+
+    def set_difficulty(self, selected, value):
+        print(selected)
+        print(value)
+    def set_name(self, value):
+        print("Ваше имя:", value)
+    def start_game(self):
+        game = Game()
+    def quit_game(self):
+        ...
+    def run(self):
+        self.menu.mainloop(self.surface)
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    menu_app = Menu()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     game = Game()
+
+
+
+
+
